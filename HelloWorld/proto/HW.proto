@@ -14,5 +14,10 @@ message HWResponse {
 }
 
 service HWService {
+    //Unary
     rpc Hello (HWRequest) returns (HWResponse);
+    //Server Streaming
+    rpc Hellooo (HWRequest) returns (stream HWResponse);
+    //Client Streaming
+    //Bi-Directional Streaming
 }

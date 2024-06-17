@@ -22,7 +22,10 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type HWServiceClient interface {
+	// Unary
 	Hello(ctx context.Context, in *HWRequest, opts ...grpc.CallOption) (*HWResponse, error)
+	// Server Streaming
+	Hellooo(ctx context.Context, in *HWRequest, opts ...grpc.CallOption) (HWService_HelloooClient, error)
 }
 
 type hWServiceClient struct {
@@ -42,11 +45,46 @@ func (c *hWServiceClient) Hello(ctx context.Context, in *HWRequest, opts ...grpc
 	return out, nil
 }
 
+func (c *hWServiceClient) Hellooo(ctx context.Context, in *HWRequest, opts ...grpc.CallOption) (HWService_HelloooClient, error) {
+	stream, err := c.cc.NewStream(ctx, &HWService_ServiceDesc.Streams[0], "/HelloWorld.HWService/Hellooo", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &hWServiceHelloooClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type HWService_HelloooClient interface {
+	Recv() (*HWResponse, error)
+	grpc.ClientStream
+}
+
+type hWServiceHelloooClient struct {
+	grpc.ClientStream
+}
+
+func (x *hWServiceHelloooClient) Recv() (*HWResponse, error) {
+	m := new(HWResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // HWServiceServer is the server API for HWService service.
 // All implementations must embed UnimplementedHWServiceServer
 // for forward compatibility
 type HWServiceServer interface {
+	// Unary
 	Hello(context.Context, *HWRequest) (*HWResponse, error)
+	// Server Streaming
+	Hellooo(*HWRequest, HWService_HelloooServer) error
 	mustEmbedUnimplementedHWServiceServer()
 }
 
@@ -56,6 +94,9 @@ type UnimplementedHWServiceServer struct {
 
 func (UnimplementedHWServiceServer) Hello(context.Context, *HWRequest) (*HWResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Hello not implemented")
+}
+func (UnimplementedHWServiceServer) Hellooo(*HWRequest, HWService_HelloooServer) error {
+	return status.Errorf(codes.Unimplemented, "method Hellooo not implemented")
 }
 func (UnimplementedHWServiceServer) mustEmbedUnimplementedHWServiceServer() {}
 
@@ -88,6 +129,27 @@ func _HWService_Hello_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HWService_Hellooo_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(HWRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(HWServiceServer).Hellooo(m, &hWServiceHelloooServer{stream})
+}
+
+type HWService_HelloooServer interface {
+	Send(*HWResponse) error
+	grpc.ServerStream
+}
+
+type hWServiceHelloooServer struct {
+	grpc.ServerStream
+}
+
+func (x *hWServiceHelloooServer) Send(m *HWResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // HWService_ServiceDesc is the grpc.ServiceDesc for HWService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -100,6 +162,12 @@ var HWService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _HWService_Hello_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Hellooo",
+			Handler:       _HWService_Hellooo_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "HW.proto",
 }

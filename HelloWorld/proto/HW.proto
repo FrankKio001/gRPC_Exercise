@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package HelloWorld;
+
+// module(go mod)+path
+option go_package = "github.com/FrankKio001/gRPC_Exercise/HelloWorld/proto";
+
+message HWRequest {
+    string name = 1; 
+}
+
+message HWResponse {
+    string result = 1; 
+}
+
+service HWService {
+    //Unary
+    rpc Hello (HWRequest) returns (HWResponse);
+    //Server Streaming
+    rpc Hellooo (HWRequest) returns (stream HWResponse);
+    //Client Streaming
+    rpc Hellos (stream HWRequest) returns (HWResponse);
+    //Bi-Directional Streaming
+    rpc BD_Hello (stream HWRequest) returns (stream HWResponse);
+}

@@ -23,5 +23,6 @@ func main() {
 
 	//doHello(c)
 	//doHellooo(c)
-	doHellos(c)
+	//doHellos(c)
+	doBD_Hello(c)
 }

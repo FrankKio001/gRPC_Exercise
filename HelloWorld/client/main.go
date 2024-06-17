@@ -22,5 +22,6 @@ func main() {
 	c := pb.NewHWServiceClient(conn)
 
 	//doHello(c)
-	doHellooo(c)
+	//doHellooo(c)
+	doHellos(c)
 }

@@ -26,6 +26,8 @@ type HWServiceClient interface {
 	Hello(ctx context.Context, in *HWRequest, opts ...grpc.CallOption) (*HWResponse, error)
 	// Server Streaming
 	Hellooo(ctx context.Context, in *HWRequest, opts ...grpc.CallOption) (HWService_HelloooClient, error)
+	// Client Streaming
+	Hellos(ctx context.Context, opts ...grpc.CallOption) (HWService_HellosClient, error)
 }
 
 type hWServiceClient struct {
@@ -77,6 +79,40 @@ func (x *hWServiceHelloooClient) Recv() (*HWResponse, error) {
 	return m, nil
 }
 
+func (c *hWServiceClient) Hellos(ctx context.Context, opts ...grpc.CallOption) (HWService_HellosClient, error) {
+	stream, err := c.cc.NewStream(ctx, &HWService_ServiceDesc.Streams[1], "/HelloWorld.HWService/Hellos", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &hWServiceHellosClient{stream}
+	return x, nil
+}
+
+type HWService_HellosClient interface {
+	Send(*HWRequest) error
+	CloseAndRecv() (*HWResponse, error)
+	grpc.ClientStream
+}
+
+type hWServiceHellosClient struct {
+	grpc.ClientStream
+}
+
+func (x *hWServiceHellosClient) Send(m *HWRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *hWServiceHellosClient) CloseAndRecv() (*HWResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(HWResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // HWServiceServer is the server API for HWService service.
 // All implementations must embed UnimplementedHWServiceServer
 // for forward compatibility
@@ -85,6 +121,8 @@ type HWServiceServer interface {
 	Hello(context.Context, *HWRequest) (*HWResponse, error)
 	// Server Streaming
 	Hellooo(*HWRequest, HWService_HelloooServer) error
+	// Client Streaming
+	Hellos(HWService_HellosServer) error
 	mustEmbedUnimplementedHWServiceServer()
 }
 
@@ -97,6 +135,9 @@ func (UnimplementedHWServiceServer) Hello(context.Context, *HWRequest) (*HWRespo
 }
 func (UnimplementedHWServiceServer) Hellooo(*HWRequest, HWService_HelloooServer) error {
 	return status.Errorf(codes.Unimplemented, "method Hellooo not implemented")
+}
+func (UnimplementedHWServiceServer) Hellos(HWService_HellosServer) error {
+	return status.Errorf(codes.Unimplemented, "method Hellos not implemented")
 }
 func (UnimplementedHWServiceServer) mustEmbedUnimplementedHWServiceServer() {}
 
@@ -150,6 +191,32 @@ func (x *hWServiceHelloooServer) Send(m *HWResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _HWService_Hellos_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(HWServiceServer).Hellos(&hWServiceHellosServer{stream})
+}
+
+type HWService_HellosServer interface {
+	SendAndClose(*HWResponse) error
+	Recv() (*HWRequest, error)
+	grpc.ServerStream
+}
+
+type hWServiceHellosServer struct {
+	grpc.ServerStream
+}
+
+func (x *hWServiceHellosServer) SendAndClose(m *HWResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *hWServiceHellosServer) Recv() (*HWRequest, error) {
+	m := new(HWRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // HWService_ServiceDesc is the grpc.ServiceDesc for HWService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -167,6 +234,11 @@ var HWService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "Hellooo",
 			Handler:       _HWService_Hellooo_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "Hellos",
+			Handler:       _HWService_Hellos_Handler,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "HW.proto",

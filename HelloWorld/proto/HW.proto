@@ -19,5 +19,6 @@ service HWService {
     //Server Streaming
     rpc Hellooo (HWRequest) returns (stream HWResponse);
     //Client Streaming
+    rpc Hellos (stream HWRequest) returns (HWResponse);
     //Bi-Directional Streaming
 }
